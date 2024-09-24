@@ -26,10 +26,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                 default:
                     // Using default handler for other cases
                     return DefWindowProc(hwnd, uMsg, wParam, lParam);
-                
-                // Indicating the message is handled
-                return 0;
             }
+
+            // Indicating the message is handled
+            return 0;
             
         case WM_POWERBROADCAST:
             switch (wParam) {
@@ -60,7 +60,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 int main() {
     const char CLASS_NAME[] = "Power Monitor Class";
 
-    WNDCLASS wc = { };
+    WNDCLASS wc = { 0 };
     wc.lpfnWndProc = WndProc;
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = CLASS_NAME;
@@ -98,7 +98,7 @@ int main() {
 
     printf("Listening for locked/unlocked and suspend/resume notifications...\n");
 
-    MSG msg = { };
+    MSG msg = { 0 };
     while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
