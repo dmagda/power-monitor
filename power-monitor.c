@@ -10,12 +10,27 @@
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_WTSSESSION_CHANGE:
-            if (wParam == WTS_SESSION_LOCK) {
-                printf("System is locked.\n");
-            } else if (wParam == WTS_SESSION_UNLOCK) {
-                printf("System is unlocked.\n");
+            switch(wParam) {
+                case WTS_SESSION_LOCK:
+                    printf("System is locked.\n");
+                    break;
+                case WTS_SESSION_UNLOCK:
+                    printf("System is unlocked.\n");
+                    break;
+                case WTS_SESSION_LOGON:
+                    printf("User logged on to the session.\n");
+                    break;
+                case WTS_SESSION_LOGOFF:
+                    printf("User logged off the session.\n");
+                    break;
+                default:
+                    // Using default handler for other cases
+                    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+                
+                // Indicating the message is handled
+                return 0;
             }
-            break;
+            
         case WM_POWERBROADCAST:
             switch (wParam) {
                 case PBT_APMSUSPEND:
@@ -25,16 +40,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
                     printf("System resumed from suspend.\n");
                     break;
                 default:
+                    // Using default handler for other cases
                     return DefWindowProc(hwnd, uMsg, wParam, lParam);
             }
+            // Indicating the message is handled
             return TRUE;
+
         case WM_DESTROY:
+            printf("Power monitor has been terminated.\n");
             PostQuitMessage(0);
-            break;
-        default:
-            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+            // Indicating the message is posted
+            return 0;        
     }
-    return 0;
+
+    // Using default handler for other cases
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 int main() {
@@ -62,19 +82,18 @@ int main() {
     }
 
     // Register to receive session change notifications
-    WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
-
-    // Register to receive power setting notifications
-    GUID GUID_SLEEP_SETTING = GUID_SLEEP_SUBGROUP; // Register for sleep settings
-    HPOWERNOTIFY hPowerNotify = RegisterPowerSettingNotification(hwnd, &GUID_SLEEP_SETTING, DEVICE_NOTIFY_WINDOW_HANDLE);
-    if (hPowerNotify == NULL) {
-        printf("Failed to register for power setting notifications.\n");
+    BOOL success = WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
+    if (!success) {
+        printf("Failed to register for session notifications.\n");
+        return 1;
     }
 
     // Register for suspend/resume notifications
     HPOWERNOTIFY hSuspendResumeNotify = RegisterSuspendResumeNotification(hwnd, DEVICE_NOTIFY_WINDOW_HANDLE);
     if (hSuspendResumeNotify == NULL) {
         printf("Failed to register for suspend/resume notifications.\n");
+        WTSUnRegisterSessionNotification(hwnd);
+        return 1;
     }
 
     printf("Listening for locked/unlocked and suspend/resume notifications...\n");
@@ -86,7 +105,6 @@ int main() {
     }
 
     // Unregister notifications before exiting
-    UnregisterPowerSettingNotification(hPowerNotify);
     UnregisterSuspendResumeNotification(hSuspendResumeNotify);
     WTSUnRegisterSessionNotification(hwnd);
 
